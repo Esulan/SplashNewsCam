@@ -2,6 +2,7 @@ package com.example.user.splashnewscam
 
 import android.Manifest
 import android.content.Context
+import android.graphics.BitmapFactory
 import android.hardware.Camera
 import android.os.Bundle
 import android.support.v4.app.ActivityCompat
@@ -32,6 +33,7 @@ class MainActivity : AppCompatActivity() {
         val MIMEType = MediaType.parse("multipart/form-data")
 
         val fileName = "testfile.jpg"
+        val bitmap = BitmapFactory.decodeByteArray(data, 0, data.size)
 
         try {
             openFileOutput(fileName,
@@ -49,6 +51,7 @@ class MainActivity : AppCompatActivity() {
 
     private val mPicture = Camera.PictureCallback { data, _ ->
         Log.d("data", data.size.toString())
+        saveImg(data)
         mCamera?.startPreview();
     }
 

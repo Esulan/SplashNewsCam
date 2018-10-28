@@ -9,9 +9,14 @@ import android.support.v4.app.ActivityCompat
 import android.support.v7.app.AppCompatActivity
 import android.util.Log
 import android.widget.FrameLayout
+import com.google.android.gms.vision.face.FaceDetector
 import java.util.TimerTask
 import java.util.Timer
 import okhttp3.*
+import android.R.attr.bitmap
+import android.graphics.Bitmap
+import android.graphics.Matrix
+import com.google.android.gms.vision.Frame
 
 
 class CameraActivity : AppCompatActivity() {
@@ -20,6 +25,7 @@ class CameraActivity : AppCompatActivity() {
     private var mPreview: CameraPreview? = null
     var taking = false
     var mTimer: Timer? = null
+    var mDetector: FaceDetector? = null
 
     fun getCameraInstance(): Camera? {
         return try {
@@ -31,31 +37,25 @@ class CameraActivity : AppCompatActivity() {
     }
 
     private fun saveImg(data: ByteArray) {
-        val client = OkHttpClient()
-        val url = "https://imagebin.ca/upload.php"
-        val MIMEType = MediaType.parse("multipart/form-data")
+        val b = BitmapFactory.decodeByteArray(data, 0, data.size)
+        val matrix = Matrix()
+        matrix.setScale(0.4f, 0.4f)
+        val bitmap = Bitmap.createBitmap(b, 0, 0, b.width, b.height, matrix, true)
+        val frame = Frame.Builder().setBitmap(bitmap).build()
+        val faces = mDetector?.detect(frame)
 
-        val fileName = "testfile.jpg"
-        val bitmap = BitmapFactory.decodeByteArray(data, 0, data.size)
-
-        /*
-        try {
-            openFileOutput(fileName,
-                    Context.MODE_PRIVATE).use { fileOutputstream ->
-
-                fileOutputstream.write(data)
-
+        if (faces != null) {
+            var i = 0
+            val nsize = faces.size()
+            while (i < nsize) {
+                val face = faces.valueAt(i)
+                Log.d("face", face.position.toString())
+                i++
             }
-        } catch (e: IOException) {
-            e.printStackTrace()
         }
-        */
-
-
     }
 
     val mPicture = Camera.PictureCallback { data, _ ->
-        Log.d("data", data.size.toString())
         saveImg(data)
         mCamera?.startPreview()
     }
@@ -72,6 +72,7 @@ class CameraActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        mDetector = FaceDetector.Builder(this).setTrackingEnabled(true).build()
 
         requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE
 
@@ -104,24 +105,13 @@ class CameraActivity : AppCompatActivity() {
                             takePicture()
                         }
                     }
-                }, 3000, 10000   //開始遅延(何ミリ秒後に開始するか)と、周期(何ミリ秒ごとに実行するか)
+                }, 1000, 4000   //開始遅延(何ミリ秒後に開始するか)と、周期(何ミリ秒ごとに実行するか)
         )
-        val mPicture = Camera.PictureCallback { data, _ ->
-            Log.d("data", data.size.toString())
-            // saveImg(data)
-        }
-        if (!taking) {
-            taking = true
-            try {
-                mCamera?.takePicture(null, null, mPicture)
-            }catch (e: java.lang.Exception) {
-
-            }
-        }
     }
 
     override fun onDestroy() {
         super.onDestroy()
         mTimer?.cancel()
+        mDetector?.release()
     }
 }

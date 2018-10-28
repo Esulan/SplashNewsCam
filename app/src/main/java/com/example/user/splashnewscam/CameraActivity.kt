@@ -17,6 +17,9 @@ import android.R.attr.bitmap
 import android.graphics.Bitmap
 import android.graphics.Matrix
 import com.google.android.gms.vision.Frame
+import okhttp3.RequestBody
+import okhttp3.OkHttpClient
+import java.io.IOException
 
 
 class CameraActivity : AppCompatActivity() {
@@ -36,6 +39,22 @@ class CameraActivity : AppCompatActivity() {
         }
     }
 
+    fun sendRequest(x: Float, y: Float) {
+        val url = String.format("https://765bd937.ngrok.io?x=%.2f&y=%.2f", x, y)
+        val client = OkHttpClient()
+        val MIMEType = MediaType.parse("application/json; charset=utf-8")
+        val requestBody = RequestBody.create(MIMEType, "{}")
+        val request = Request.Builder().url(url).get().build()
+        val response = client.newCall(request).enqueue(object : Callback {
+            override fun onFailure(call: Call, e: IOException) {
+                Log.d("call failure", e.toString())
+            }
+            override fun onResponse(call: Call, response: Response){
+                Log.d("call", response.body()?.string())
+            }
+        })
+    }
+
     private fun saveImg(data: ByteArray) {
         val b = BitmapFactory.decodeByteArray(data, 0, data.size)
         val matrix = Matrix()
@@ -50,6 +69,7 @@ class CameraActivity : AppCompatActivity() {
             while (i < nsize) {
                 val face = faces.valueAt(i)
                 Log.d("face", face.position.toString())
+                sendRequest(face.position.x, face.position.y)
                 i++
             }
         }
